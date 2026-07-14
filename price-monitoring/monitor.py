@@ -319,6 +319,7 @@ def diff(previous: dict, current: dict, targets: list[dict], threshold_pct: floa
 def _event(kind, url, label, curr, prev, pct=None) -> dict:
     return {
         "type": kind,
+        "url": url,
         "retailer": label.get(url, ""),
         "name": curr["name"],
         "old_price": prev.get("price"),
@@ -489,6 +490,12 @@ def main() -> None:
     summary = format_summary(result, missing=missing)
     print(summary)
     write_github_summary(summary)
+
+    # Text one SMS per genuine price change. Opt-in: a no-op without Twilio
+    # credentials, so offline runs and the schedule keep working unchanged.
+    from notify import send_price_alerts
+
+    send_price_alerts(result["events"])
 
     # Surface quarantined values as a CI warning so a run with suspect data can't
     # slip by unnoticed in a sea of green. We don't fail the run on it — the rest

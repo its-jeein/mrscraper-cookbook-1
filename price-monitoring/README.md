@@ -177,6 +177,50 @@ gh workflow run price-monitor.yml
 
 That needs the GitHub CLI and a `workflow_dispatch:` trigger in the workflow's `on:` block (included here).
 
+## SMS alerts (Twilio, optional)
+
+The monitor can text you one concise SMS per genuine price change (a drop or an
+increase past your threshold). Stock-only changes and quarantined "suspect" data
+are not texted. Each message contains the product name, retailer, previous price,
+current price, percentage change, and the product URL.
+
+It's fully opt-in. With no Twilio credentials set, the monitor behaves exactly as
+before — it just prints the summary and skips texting.
+
+1. Install deps (Twilio is now in `requirements.txt`):
+
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. Add your Twilio settings to `.env` (see `.env.example`). All four are required
+   to send:
+
+   ```bash
+   TWILIO_ACCOUNT_SID=ACxxxxxxxx        # Twilio Console
+   TWILIO_AUTH_TOKEN=your_auth_token    # Twilio Console
+   TWILIO_FROM_NUMBER=+15550000000      # a Twilio number you own
+   ALERT_TO_NUMBER=+15551111111         # where alerts go
+   ```
+
+3. Preview the exact SMS without sending anything (dry run):
+
+   ```bash
+   NOTIFY_DRY_RUN=1 python monitor.py
+   ```
+
+   This prints each message body it *would* send. It never contacts Twilio and
+   never records anything, so a later real run still sends.
+
+Duplicate protection: once a specific change is texted, it's recorded in
+`data/notified.json` (gitignored) so the same move can't alert twice. Missing
+credentials and Twilio API errors are reported on the run's output and never
+crash the monitor.
+
+For the scheduled GitHub Action, add `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
+`TWILIO_FROM_NUMBER`, and `ALERT_TO_NUMBER` as repository secrets. The workflow
+already passes them through; without them the scheduled run just skips SMS.
+
 ## License
 
 MIT

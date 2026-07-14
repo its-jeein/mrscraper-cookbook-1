@@ -50,6 +50,12 @@ jobs:
       - name: Run monitor
         env:
           MRSCRAPER_API_TOKEN: ${{ secrets.MRSCRAPER_API_TOKEN }}
+          # Optional SMS alerts. If these secrets are unset, the monitor runs
+          # exactly as before and simply skips texting.
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM_NUMBER: ${{ secrets.TWILIO_FROM_NUMBER }}
+          ALERT_TO_NUMBER: ${{ secrets.ALERT_TO_NUMBER }}
         run: python monitor.py
 
       - name: Upload snapshot
