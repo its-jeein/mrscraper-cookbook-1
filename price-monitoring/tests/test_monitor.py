@@ -283,6 +283,41 @@ def test_two_run_pipeline(tmp_path, monkeypatch, capsys):
     assert snap["u2"]["price"] == 100.0
 
 
+def test_main_invokes_send_price_alerts_with_detected_events(tmp_path, monkeypatch):
+    # main() must hand the diff's events to the SMS layer. We stub the notifier
+    # (so nothing is ever sent) and capture exactly what main() passes it.
+    import notify
+
+    cfg = tmp_path / "config.json"
+    cfg.write_text(json.dumps({
+        "proxy_country": "US", "threshold_pct": 5.0,
+        "retailers": [{"retailer": "A", "url": "u0"}],
+    }))
+    monkeypatch.setattr(m, "CONFIG_PATH", cfg)
+    monkeypatch.setattr(m, "SNAPSHOT_PATH", tmp_path / "snap.json")
+    monkeypatch.setenv("MRSCRAPER_API_TOKEN", "dummy")  # scrape is stubbed
+
+    state = {"n": 0}
+
+    async def fake_scrape(targets, proxy):
+        state["n"] += 1
+        price = 100.0 if state["n"] == 1 else 80.0  # run 2 = -20% price drop
+        return {t["url"]: P(price) for t in targets}
+
+    monkeypatch.setattr(m, "_scrape_all", fake_scrape)
+
+    calls = []
+    monkeypatch.setattr(notify, "send_price_alerts", lambda events: calls.append(events))
+
+    m.main()  # baseline: notifier is still called, with no events to alert on
+    assert calls == [[]]
+
+    m.main()  # second run: the detected price drop is passed through to the notifier
+    drop = next(e for e in calls[1] if e["type"] == "price_drop")
+    assert drop["url"] == "u0"          # event carries the URL the SMS needs
+    assert drop["pct"] == pytest.approx(-20.0)
+
+
 # ---------------------------------------------------------------------------
 # Config error handling: clear exits, not raw tracebacks.
 # ---------------------------------------------------------------------------
