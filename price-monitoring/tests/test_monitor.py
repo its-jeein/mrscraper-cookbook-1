@@ -488,12 +488,12 @@ def test_save_snapshot_round_trip_after_atomic_change(tmp_path, monkeypatch):
 def test_demo_mode_uses_real_detection(capsys):
     m.demo(pause=0)
     out = capsys.readouterr().out
-    assert "🔍 Checking Tesla Model Y" in out
-    assert "Previous Price: $41,998" in out
-    assert "Current Price: $39,998" in out
-    assert "🚨 Price Change Detected" in out
+    assert "🔍 Checking ASUS PRIME GeForce RTX 5070 12GB" in out
+    assert "was $649.99" in out
+    assert "now $549.99" in out
+    assert "🚨 Change detected" in out
     assert "PRICE DROP" in out   # produced by the real diff() + format_summary()
-    assert "-4.8%" in out        # real computed percentage, not hardcoded
+    assert "-15.4%" in out       # real computed percentage, not hardcoded
 
 
 # Plain-test coverage for the invariants the property tests proved (no hypothesis dep).
